@@ -19,8 +19,6 @@ import io.ktor.http.HeadersBuilder
 import io.ktor.http.parametersOf
 import java.nio.file.Path
 
-data class AuthInfo(val access_token: String, val refresh_token: String)
-
 private const val ROOT_URL = "https://api.leboncoin.fr/api"
 private const val API_KEY = "ba0c2dad52b3ec"
 
@@ -30,7 +28,6 @@ object LeBonCoin {
         install(JsonFeature) {
             serializer = JacksonSerializer {
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-//                propertyNamingStrategy = PropertyNamingStrategy.SNAKE_CASE
             }
         }
     }
@@ -159,6 +156,9 @@ data class User(
     val phone: String,
     val location: Location
 )
+
+@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy::class)
+data class AuthInfo(val accessToken: String, val refreshToken: String)
 
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy::class)
 private data class PricingResponse(val pricingId: String, val options: List<PricingOption>)
