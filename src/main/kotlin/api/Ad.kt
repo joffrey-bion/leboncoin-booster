@@ -9,8 +9,6 @@ data class AdData(
     val attributes: Map<String, String>,
     val images: List<AdImageRef>,
     val email: String,
-//    val escrowFirstname: String,
-//    val escrowLastname: String,
     val location: Location,
     val no_salesmen: Boolean = true,
     val phone: String,
@@ -23,14 +21,8 @@ data class AdImageRef(val name: String, val url: String)
 data class Location(
     val address: String,
     val city: String,
-//    val department: String,
-//    val dptLabel: String,
-//    val geo_provider: String,
-//    val geo_source: String,
     val label: String,
     val lat: Double,
     val lng: Double,
-//    val region: String,
-//    val region_label: String,
     val zipcode: String
 )

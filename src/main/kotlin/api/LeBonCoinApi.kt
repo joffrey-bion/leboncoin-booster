@@ -164,8 +164,6 @@ private fun createAdData(
     attributes = simpleAd.attributes,
     images = images.map { AdImageRef(it.filename, it.url) },
     email = user.email,
-//    escrowFirstname = user.firstName,
-//    escrowLastname = user.lastName,
     location = location,
     phone = user.phone,
     pricing_id = pricingId
