@@ -8,7 +8,6 @@ import io.ktor.client.engine.apache.Apache
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.forms.FormBuilder
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
@@ -16,12 +15,8 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
-import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
-import io.ktor.http.HttpHeaders
 import io.ktor.http.parametersOf
-import kotlinx.io.streams.asInput
-import java.io.File
 import java.nio.file.Path
 
 data class AuthInfo(val access_token: String, val refresh_token: String)
@@ -133,21 +128,9 @@ class LeBonCoinSession(
         }
     }
 
-    private fun HttpRequestBuilder.appendAuth() {
-        headers { appendAuth() }
-    }
+    private fun HttpRequestBuilder.appendAuth() = appendBearerToken(authInfo.accessToken)
 
-    private fun HeadersBuilder.appendAuth() {
-        append("Authorization", "Bearer ${authInfo.access_token}")
-    }
-
-    private fun FormBuilder.appendFileInput(key: String, file: File, contentType: String) {
-        val fileHeaders = Headers.build {
-            append(HttpHeaders.ContentType, contentType)
-            append(HttpHeaders.ContentDisposition, "filename=${file.name}")
-        }
-        appendInput(key, fileHeaders) { file.inputStream().asInput() }
-    }
+    private fun HeadersBuilder.appendAuth() = appendBearerToken(authInfo.accessToken)
 }
 
 private fun createAdData(
