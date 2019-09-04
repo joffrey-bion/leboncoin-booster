@@ -16,7 +16,7 @@ private val IMG_FOLDER = Paths.get("C:", "Users", "joffr", "Desktop", "Annonces 
 fun main() {
     runBlocking {
 
-        val session = LeBonCoin.login("joffrey.bion@gmail.com", "DarkLink40")
+        val session = LeBonCoin().login("joffrey.bion@gmail.com", "DarkLink40")
 
         val ad = createAdLinenPants()
 

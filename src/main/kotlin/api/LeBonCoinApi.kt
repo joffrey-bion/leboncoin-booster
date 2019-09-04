@@ -15,16 +15,14 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
-import io.ktor.http.HeadersBuilder
 import io.ktor.http.parametersOf
 import java.nio.file.Path
 
-private const val ROOT_URL = "https://api.leboncoin.fr/api"
-private const val API_KEY = "ba0c2dad52b3ec"
-
-object LeBonCoin {
-
-    private val httpClient = HttpClient(Apache) {
+class LeBonCoin(
+    val rootUrl: String = "https://api.leboncoin.fr/api",
+    val apiKey: String = "ba0c2dad52b3ec"
+) {
+    private val http = HttpClient(Apache) {
         install(JsonFeature) {
             serializer = JacksonSerializer {
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
@@ -32,13 +30,13 @@ object LeBonCoin {
         }
     }
 
-    suspend fun login(email: String, password: String): LeBonCoinSession {
+    suspend fun login(email: String, password: String): Session {
         val authInfo = requestToken(email, password)
-        return LeBonCoinSession(httpClient, authInfo)
+        return Session(http, authInfo)
     }
 
     private suspend fun requestToken(email: String, password: String): AuthInfo =
-            httpClient.post("$ROOT_URL/oauth/v1/token") {
+            http.post("$rootUrl/oauth/v1/token") {
                 body = FormDataContent(
                     parametersOf(
                         "client_id" to listOf("frontweb"),
@@ -49,94 +47,108 @@ object LeBonCoin {
                 )
             }
 
-    suspend fun getLocation(addressHint: String): Location = httpClient.get("$ROOT_URL/ad-geoloc/v1/geocode") {
+    suspend fun getLocation(addressHint: String): Location = http.get("$rootUrl/ad-geoloc/v1/geocode") {
         parameter("address", addressHint)
     }
-}
 
-class LeBonCoinSession(
-    private val httpClient: HttpClient,
-    private val authInfo: AuthInfo
-) {
-    suspend fun getUser(): User = fetchUserData().personalData.toUser()
+    inner class Session(
+        private val http: HttpClient,
+        private val authInfo: AuthInfo
+    ) {
+        private suspend fun getUser(): User = fetchUserData().personalData.toUser()
 
-    private suspend fun fetchUserData(): UserData = httpClient.get("$ROOT_URL/accounts/v1/accounts/me/personaldata") {
-        headers {
-            appendAuth()
+        private suspend fun fetchUserData(): UserData = http.authGet("/accounts/v1/accounts/me/personaldata")
+
+        private suspend fun PersonalData.toUser(): User {
+            val location = getLocation(addresses.billing.city)
+            return User(firstname, lastname, email, phones.main.number, location)
         }
-    }
 
-    private suspend fun PersonalData.toUser(): User {
-        val location = LeBonCoin.getLocation(addresses.billing.city)
-        return User(firstname, lastname, email, phones.main.number, location)
-    }
-
-    suspend fun findAd(id: String): AdData = httpClient.get("$ROOT_URL/pintad/v1/public/manual/classified/$id") {
-        headers {
-            appendAuth()
+        suspend fun recreateAd(id: String, useLocationFromUser: Boolean = false) {
+            val ad = findAd(id)
+            val pricingId = getPricing(ad.category_id).pricingId
+            val newLocation = if (useLocationFromUser) getUser().location else null
+            val adToCreate = ad.toNewAd(pricingId, newLocation)
+            createAd(adToCreate)
         }
-    }
 
-    suspend fun createAd(ad: SimpleAd, location: Location? = null): String {
-        val user = getUser()
-        val adLocation = location ?: user.location
-        val pricingId = getPricing(ad.category.id).pricingId
-        val images = ad.imagePaths.map { uploadImage(it) }
-        val adData =
-                createAdData(user = user, simpleAd = ad, images = images, location = adLocation, pricingId = pricingId)
-        val adResponse = createAd(adData)
-        return adResponse.adId
-    }
+        private suspend fun findAd(id: String): Ad = http.authGet("/pintad/v1/public/manual/classified/$id")
 
-    private suspend fun createAd(adData: AdData): AdCreationResponse =
-            httpClient.post("$ROOT_URL/adsubmit/v1/classifieds") {
+        suspend fun createAd(ad: SimpleAd, location: Location? = null): String {
+            val user = getUser()
+            val adLocation = location ?: user.location
+            val pricingId = getPricing(ad.category.id.toString()).pricingId
+            val images = ad.imagePaths.map { uploadImage(it) }
+            val adData = buildAdToCreate(
+                user = user,
+                simpleAd = ad,
+                images = images,
+                location = adLocation,
+                pricingId = pricingId
+            )
+            val adResponse = createAd(adData)
+            return adResponse.adId
+        }
+
+        private suspend fun createAd(ad: AdToCreate): AdCreationResponse =
+                http.authPost("/adsubmit/v1/classifieds") {
+                    headers {
+                        append("Sec-Fetch-Mode", "no-cors")
+                        append("Referer", "https://www.leboncoin.fr/deposer-une-annonce/")
+                        append("Origin", "https://www.leboncoin.fr")
+                        append("Content-Type", "application/json")
+                    }
+                    body = ad
+                }
+
+        private suspend fun getPricing(categoryId: String): PricingResponse =
+                http.authGet("/options/v1/pricing/ad") {
+                    parameter("category", categoryId)
+                }
+
+        private suspend fun uploadImage(imagePath: Path): ImageRef {
+            val imageFile = imagePath.toFile()
+            if (!imageFile.exists() || !imageFile.isFile) {
+                throw IllegalArgumentException("Image not found at path $imagePath")
+            }
+            return http.authPost("/pintad/v1/public/upload/image") {
                 headers {
-                    appendAuth()
+                    append("api_key", apiKey)
                     append("Sec-Fetch-Mode", "no-cors")
                     append("Referer", "https://www.leboncoin.fr/deposer-une-annonce/")
                     append("Origin", "https://www.leboncoin.fr")
-                    append("Content-Type", "application/json")
                 }
-                body = adData
+                body = MultiPartFormDataContent(formData {
+                    appendFileInput("file", imageFile, "image/jpeg")
+                })
             }
-
-    private suspend fun getPricing(categoryId: Int): PricingResponse =
-            httpClient.get("$ROOT_URL/options/v1/pricing/ad") {
-                appendAuth()
-                parameter("category", categoryId)
-            }
-
-    private suspend fun uploadImage(imagePath: Path): ImageRef {
-        val imageFile = imagePath.toFile()
-        if (!imageFile.exists() || !imageFile.isFile) {
-            throw IllegalArgumentException("Image not found at path $imagePath")
         }
-        return httpClient.post("$ROOT_URL/pintad/v1/public/upload/image") {
-            headers {
-                appendAuth()
-                append("api_key", API_KEY)
-                append("Sec-Fetch-Mode", "no-cors")
-                append("Referer", "https://www.leboncoin.fr/deposer-une-annonce/")
-                append("Origin", "https://www.leboncoin.fr")
-            }
-            body = MultiPartFormDataContent(formData {
-                appendFileInput("file", imageFile, "image/jpeg")
-            })
+
+        private suspend inline fun <reified T> HttpClient.authPost(
+            path: String,
+            block: HttpRequestBuilder.() -> Unit
+        ): T = post("$rootUrl$path") {
+            appendBearerToken(authInfo.accessToken)
+            block()
+        }
+
+        private suspend inline fun <reified T> HttpClient.authGet(
+            path: String,
+            block: HttpRequestBuilder.() -> Unit = {}
+        ): T = get("$rootUrl$path") {
+            appendBearerToken(authInfo.accessToken)
+            block()
         }
     }
-
-    private fun HttpRequestBuilder.appendAuth() = appendBearerToken(authInfo.accessToken)
-
-    private fun HeadersBuilder.appendAuth() = appendBearerToken(authInfo.accessToken)
 }
 
-private fun createAdData(
+private fun buildAdToCreate(
     user: User,
     simpleAd: SimpleAd,
     images: List<ImageRef>,
     location: Location,
     pricingId: String
-) = AdData(
+) = AdToCreate(
     category_id = simpleAd.category.id.toString(),
     subject = simpleAd.title,
     body = simpleAd.body,
