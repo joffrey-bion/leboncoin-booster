@@ -18,9 +18,7 @@ fun main() {
 
         val session = LeBonCoin().login("joffrey.bion@gmail.com", "DarkLink40")
 
-        val ad = createAdLinenPants()
-
-        session.createAd(ad)
+        session.recreateAd("1665763552", true)
     }
 }
 

@@ -2,7 +2,7 @@ package org.hildan.leboncoin.api
 
 private val ATTRIBUTES_TO_REMOVE_FOR_CREATION = setOf("pseudo", "smart_tags", "geoip_country")
 
-data class Ad(
+data class AdDetails(
     val ad_type: String = "sell",
     val category_id: String,
     val subject: String,

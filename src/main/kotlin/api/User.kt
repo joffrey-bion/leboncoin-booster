@@ -1,6 +1,7 @@
 package org.hildan.leboncoin.api
 
 data class UserData(
+    val storeId: Long,
     val userId: String,
     val personalData: PersonalData
 )

@@ -55,39 +55,67 @@ class LeBonCoin(
         private val http: HttpClient,
         private val authInfo: AuthInfo
     ) {
-        private suspend fun getUser(): User = fetchUserData().personalData.toUser()
+        private suspend fun getUser(): User = fetchUserData().toUser()
 
         private suspend fun fetchUserData(): UserData = http.authGet("/accounts/v1/accounts/me/personaldata")
 
-        private suspend fun PersonalData.toUser(): User {
-            val location = getLocation(addresses.billing.city)
-            return User(firstname, lastname, email, phones.main.number, location)
+        private suspend fun UserData.toUser(): User {
+            with(personalData) {
+                val location = getLocation(addresses.billing.city)
+                return User(this@toUser.storeId, firstname, lastname, email, phones.main.number, location)
+            }
         }
 
-        suspend fun recreateAd(id: String, useLocationFromUser: Boolean = false) {
+        suspend fun listUserAds(): AdSearchResult {
+            val user = getUser()
+            return http.authPost("/dashboard/v1/search") {
+                headers {
+                    append("Content-Type", "application/json")
+                }
+                body = AdSearchRequest.ofUser(user.storeId.toString())
+            }
+        }
+
+        suspend fun recreateAllAds(useLocationFromUser: Boolean = false) {
+            val ads = listUserAds().ads
+
+            val idsOfAdsToDelete = mutableListOf<String>()
+            ads.forEach {
+                val id = it.list_id.toString()
+                println("Recreating ad $id: ${it.subject}")
+                recreateAd(id, useLocationFromUser)
+                idsOfAdsToDelete.add(id)
+            }
+
+            println("${ads.size} ads recreated, please delete the following:")
+            idsOfAdsToDelete.forEach {
+                println("https://www.leboncoin.fr/vetements/$it.htm/")
+            }
+        }
+
+        suspend fun recreateAd(id: String, useLocationFromUser: Boolean = false): AdCreationResponse {
             val ad = findAd(id)
             val pricingId = getPricing(ad.category_id).pricingId
             val newLocation = if (useLocationFromUser) getUser().location else null
             val adToCreate = ad.toNewAd(pricingId, newLocation)
-            createAd(adToCreate)
+            return createAd(adToCreate)
         }
 
-        private suspend fun findAd(id: String): Ad = http.authGet("/pintad/v1/public/manual/classified/$id")
+        private suspend fun findAd(id: String): AdDetails = http.authGet("/pintad/v1/public/manual/classified/$id")
 
-        suspend fun createAd(ad: SimpleAd, location: Location? = null): String {
+        suspend fun createAd(ad: SimpleAd, location: Location? = null): AdCreationResponse {
             val user = getUser()
             val adLocation = location ?: user.location
             val pricingId = getPricing(ad.category.id.toString()).pricingId
             val images = ad.imagePaths.map { uploadImage(it) }
-            val adData = buildAdToCreate(
+            val adToCreate = buildAdToCreate(
                 user = user,
                 simpleAd = ad,
                 images = images,
                 location = adLocation,
                 pricingId = pricingId
             )
-            val adResponse = createAd(adData)
-            return adResponse.adId
+            return createAd(adToCreate)
         }
 
         private suspend fun createAd(ad: AdToCreate): AdCreationResponse =
@@ -162,6 +190,7 @@ private fun buildAdToCreate(
 )
 
 data class User(
+    val storeId: Long,
     val firstName: String,
     val lastName: String,
     val email: String,
@@ -181,4 +210,4 @@ private data class PricingOption(val name: String, val priceCentsTaxIncl: Int, v
 private data class ImageRef(val filename: String, val url: String)
 
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy::class)
-private data class AdCreationResponse(val status: String, val adId: String)
+data class AdCreationResponse(val status: String, val adId: String)
