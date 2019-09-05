@@ -31,9 +31,12 @@ data class ClothingAttributes(
 
 
 enum class Category(val id: Int) {
+    /** Vetements */
     CLOTHES(22),
+    /** Meubles */
     FURNITURES(19),
-    ELECTROMENAGER(20)
+    /** Electromenager */
+    APPLIANCES(20)
 }
 
 enum class ClothingType(val value: Int) {
