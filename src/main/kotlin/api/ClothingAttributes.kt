@@ -1,16 +1,8 @@
 package org.hildan.leboncoin.api
 
-import java.nio.file.Path
+import kotlinx.serialization.Serializable
 
-data class SimpleAd(
-    val title: String,
-    val body: String,
-    val category: Category,
-    val price: Int,
-    val attributes: Map<String, String>,
-    val imagePaths: List<Path>
-)
-
+@Serializable
 data class ClothingAttributes(
     val type: ClothingType,
     val category: ClothingCategory,
@@ -27,16 +19,6 @@ data class ClothingAttributes(
         "clothing_st" to size.value.toString(),
         "clothing_type" to type.value.toString()
     )
-}
-
-
-enum class Category(val id: Int) {
-    /** Vetements */
-    CLOTHES(22),
-    /** Meubles */
-    FURNITURES(19),
-    /** Electromenager */
-    APPLIANCES(20)
 }
 
 enum class ClothingType(val value: Int) {
@@ -100,5 +82,5 @@ enum class ClothingCondition(val value: Int) {
     NEW_WITHOUT_LABEL(4),
     VERY_GOOD(3),
     GOOD(2),
-    SATIFYING(1)
+    SATISFYING(1)
 }

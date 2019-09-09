@@ -55,7 +55,7 @@ class LeBonCoin(
         private val http: HttpClient,
         private val authInfo: AuthInfo
     ) {
-        private suspend fun getUser(): User = fetchUserData().toUser()
+        suspend fun getUser(): User = fetchUserData().toUser()
 
         private suspend fun fetchUserData(): UserData = http.authGet("/accounts/v1/accounts/me/personaldata")
 
@@ -82,7 +82,6 @@ class LeBonCoin(
             val idsOfAdsToDelete = mutableListOf<String>()
             ads.forEach {
                 val id = it.list_id.toString()
-                println("Recreating ad $id: ${it.subject}")
                 recreateAd(id, useLocationFromUser)
                 idsOfAdsToDelete.add(id)
             }
@@ -95,25 +94,31 @@ class LeBonCoin(
 
         suspend fun recreateAd(id: String, useLocationFromUser: Boolean = false): AdCreationResponse {
             val ad = findAd(id)
+            println("Recreating ad $id: ${ad.subject}")
             val pricingId = getPricing(ad.category_id).pricingId
             val newLocation = if (useLocationFromUser) getUser().location else null
             val adToCreate = ad.toNewAd(pricingId, newLocation)
             return createAd(adToCreate)
         }
 
-        private suspend fun findAd(id: String): AdDetails = http.authGet("/pintad/v1/public/manual/classified/$id")
+        suspend fun findAd(id: String): AdDetails = http.authGet("/pintad/v1/public/manual/classified/$id")
 
         suspend fun createAd(ad: SimpleAd, location: Location? = null): AdCreationResponse {
             val user = getUser()
             val adLocation = location ?: user.location
             val pricingId = getPricing(ad.category.id.toString()).pricingId
             val images = ad.imagePaths.map { uploadImage(it) }
-            val adToCreate = buildAdToCreate(
-                user = user,
-                simpleAd = ad,
-                images = images,
+            val adToCreate = AdToCreate(
+                category_id = ad.category.id.toString(),
+                subject = ad.title,
+                body = ad.body,
+                price = ad.price.toString(),
+                attributes = ad.attributes,
+                images = images.map { AdImageRef(it.filename, it.url) },
+                email = user.email,
                 location = adLocation,
-                pricingId = pricingId
+                phone = user.phone,
+                pricing_id = pricingId
             )
             return createAd(adToCreate)
         }
@@ -136,9 +141,8 @@ class LeBonCoin(
 
         private suspend fun uploadImage(imagePath: Path): ImageRef {
             val imageFile = imagePath.toFile()
-            if (!imageFile.exists() || !imageFile.isFile) {
-                throw IllegalArgumentException("Image not found at path $imagePath")
-            }
+            require(imageFile.exists() && imageFile.isFile) { "Image not found at path $imagePath" }
+
             return http.authPost("/pintad/v1/public/upload/image") {
                 headers {
                     append("api_key", apiKey)
@@ -170,25 +174,6 @@ class LeBonCoin(
     }
 }
 
-private fun buildAdToCreate(
-    user: User,
-    simpleAd: SimpleAd,
-    images: List<ImageRef>,
-    location: Location,
-    pricingId: String
-) = AdToCreate(
-    category_id = simpleAd.category.id.toString(),
-    subject = simpleAd.title,
-    body = simpleAd.body,
-    price = simpleAd.price.toString(),
-    attributes = simpleAd.attributes,
-    images = images.map { AdImageRef(it.filename, it.url) },
-    email = user.email,
-    location = location,
-    phone = user.phone,
-    pricing_id = pricingId
-)
-
 data class User(
     val storeId: Long,
     val firstName: String,
@@ -197,6 +182,27 @@ data class User(
     val phone: String,
     val location: Location
 )
+
+data class SimpleAd(
+    val title: String,
+    val body: String,
+    val category: Category,
+    val price: Int,
+    val attributes: Map<String, String>,
+    val imagePaths: List<Path>
+)
+
+enum class Category(val id: Int) {
+    /** Vetements */
+    CLOTHES(22),
+    /** Meubles */
+    FURNITURES(19),
+    /** Electromenager */
+    APPLIANCES(20),
+    SPORT_HOBBIES(29),
+    DECORATION(39),
+    CONSOLES_AND_GAMES(43)
+}
 
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy::class)
 data class AuthInfo(val accessToken: String, val refreshToken: String)
