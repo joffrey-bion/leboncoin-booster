@@ -11,24 +11,24 @@ data class ClothingAttributes(
     val brand: String,
     val color: String
 ) {
-    fun toMap(): Map<String, String> = mapOf(
+    fun toLbcAttributes(): Map<String, String> = mapOf(
         "clothing_brand" to brand,
-        "clothing_category" to category.value,
+        "clothing_category" to category.lbcName,
         "clothing_color" to color,
-        "clothing_condition" to condition.value.toString(),
-        "clothing_st" to size.value.toString(),
-        "clothing_type" to type.value.toString()
+        "clothing_condition" to condition.lbcValue.toString(),
+        "clothing_st" to size.lbcValue.toString(),
+        "clothing_type" to type.lbcValue.toString()
     )
 }
 
-enum class ClothingType(val value: Int) {
+enum class ClothingType(val lbcValue: Int) {
     WOMEN(1),
     MATERNITY(2),
     MEN(3),
     CHILDREN(4),
 }
 
-enum class ClothingSize(val value: Int) {
+enum class ClothingSize(val lbcValue: Int) {
     WOMAN_XXS_32(1),
     WOMAN_XS_34(2),
     WOMAN_S_36(3),
@@ -58,7 +58,7 @@ enum class ClothingSize(val value: Int) {
     CHILD_18_YO(10),
 }
 
-enum class ClothingCategory(val value: String) {
+enum class ClothingCategory(val lbcName: String) {
     DRESS("robe"),
     COAT_JACKET("manteau"),
     TOP_TSHIRT_POLO("haut"),
@@ -77,7 +77,7 @@ enum class ClothingCategory(val value: String) {
     OTHER("autre"),
 }
 
-enum class ClothingCondition(val value: Int) {
+enum class ClothingCondition(val lbcValue: Int) {
     NEW_WITH_LABEL(5),
     NEW_WITHOUT_LABEL(4),
     VERY_GOOD(3),

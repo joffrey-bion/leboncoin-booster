@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.3.50"
+    kotlin("plugin.serialization") version "1.3.50"
     application
 }
 
@@ -13,7 +14,7 @@ application {
 }
 
 repositories {
-    mavenCentral()
+    jcenter()
 }
 
 dependencies {
@@ -25,6 +26,9 @@ dependencies {
     implementation("io.ktor:ktor-client-apache:$ktorVersion")
     implementation("io.ktor:ktor-client-json:$ktorVersion")
     implementation("io.ktor:ktor-client-jackson:$ktorVersion")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.12.0")
+    implementation("com.charleskorn.kaml:kaml:0.13.0")
 }
 
 tasks.withType<KotlinCompile> {

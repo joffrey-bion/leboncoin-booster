@@ -55,14 +55,14 @@ class LeBonCoin(
         private val http: HttpClient,
         private val authInfo: AuthInfo
     ) {
-        suspend fun getUser(): User = fetchUserData().toUser()
+        suspend fun getUser(): LbcUser = fetchUserData().toUser()
 
         private suspend fun fetchUserData(): UserData = http.authGet("/accounts/v1/accounts/me/personaldata")
 
-        private suspend fun UserData.toUser(): User {
+        private suspend fun UserData.toUser(): LbcUser {
             with(personalData) {
                 val location = getLocation(addresses.billing.city)
-                return User(this@toUser.storeId, firstname, lastname, email, phones.main.number, location)
+                return LbcUser(this@toUser.storeId, firstname, lastname, email, phones.main.number, location)
             }
         }
 
@@ -103,7 +103,7 @@ class LeBonCoin(
 
         suspend fun findAd(id: String): AdDetails = http.authGet("/pintad/v1/public/manual/classified/$id")
 
-        suspend fun createAd(ad: SimpleAd, location: Location? = null): AdCreationResponse {
+        suspend fun createAd(ad: LbcAd, location: Location? = null): AdCreationResponse {
             val user = getUser()
             val adLocation = location ?: user.location
             val pricingId = getPricing(ad.category.id.toString()).pricingId
@@ -174,7 +174,7 @@ class LeBonCoin(
     }
 }
 
-data class User(
+data class LbcUser(
     val storeId: Long,
     val firstName: String,
     val lastName: String,
@@ -183,25 +183,37 @@ data class User(
     val location: Location
 )
 
-data class SimpleAd(
+data class LbcAd(
     val title: String,
     val body: String,
     val category: Category,
     val price: Int,
     val attributes: Map<String, String>,
     val imagePaths: List<Path>
-)
+) {
+    init {
+        require(body.trim().length >= 15) { "Body must be 15 characters minimum. Invalid ad: $title" }
+    }
+}
 
 enum class Category(val id: Int) {
-    /** Vetements */
-    CLOTHES(22),
+    /** Informatique */
+    COMPUTERS(15),
+    /** Téléphonie */
+    PHONES(17),
     /** Meubles */
     FURNITURES(19),
     /** Electromenager */
     APPLIANCES(20),
+    /** Vetements */
+    CLOTHES(22),
     SPORT_HOBBIES(29),
     DECORATION(39),
-    CONSOLES_AND_GAMES(43)
+    TOYS(41),
+    CONSOLES_AND_GAMES(43),
+    /** Arts de la Table */
+    KITCHEN(45),
+    GARDEN(52)
 }
 
 @JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy::class)
