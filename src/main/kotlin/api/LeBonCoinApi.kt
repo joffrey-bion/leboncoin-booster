@@ -199,6 +199,8 @@ data class LbcAd(
 enum class Category(val id: Int) {
     /** Informatique */
     COMPUTERS(15),
+    /** Image et son */
+    AUDIO_AND_VIDEO(16),
     /** Téléphonie */
     PHONES(17),
     /** Meubles */
