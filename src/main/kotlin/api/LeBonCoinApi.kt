@@ -1,30 +1,24 @@
 package org.hildan.leboncoin.api
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.PropertyNamingStrategy
-import com.fasterxml.jackson.databind.annotation.JsonNaming
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.apache.Apache
-import io.ktor.client.features.json.JacksonSerializer
-import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.forms.FormDataContent
-import io.ktor.client.request.forms.MultiPartFormDataContent
-import io.ktor.client.request.forms.formData
-import io.ktor.client.request.get
-import io.ktor.client.request.headers
-import io.ktor.client.request.parameter
-import io.ktor.client.request.post
-import io.ktor.http.parametersOf
-import java.nio.file.Path
+import com.fasterxml.jackson.databind.*
+import com.fasterxml.jackson.databind.annotation.*
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.apache.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.client.request.forms.*
+import io.ktor.http.*
+import io.ktor.serialization.jackson.*
+import java.nio.file.*
 
 class LeBonCoin(
     val rootUrl: String = "https://api.leboncoin.fr/api",
     val apiKey: String = "ba0c2dad52b3ec"
 ) {
     private val http = HttpClient(Apache) {
-        install(JsonFeature) {
-            serializer = JacksonSerializer {
+        install(ContentNegotiation) {
+            jackson {
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             }
         }
@@ -37,19 +31,19 @@ class LeBonCoin(
 
     private suspend fun requestToken(email: String, password: String): AuthInfo =
             http.post("$rootUrl/oauth/v1/token") {
-                body = FormDataContent(
+                setBody(FormDataContent(
                     parametersOf(
                         "client_id" to listOf("frontweb"),
                         "grant_type" to listOf("password"),
                         "username" to listOf(email),
                         "password" to listOf(password)
                     )
-                )
-            }
+                ))
+            }.body()
 
     suspend fun getLocation(addressHint: String): Location = http.get("$rootUrl/ad-geoloc/v1/geocode") {
         parameter("address", addressHint)
-    }
+    }.body()
 
     inner class Session(
         private val http: HttpClient,
@@ -72,7 +66,7 @@ class LeBonCoin(
                 headers {
                     append("Content-Type", "application/json")
                 }
-                body = AdSearchRequest.ofUser(user.storeId.toString())
+                setBody(AdSearchRequest.ofUser(user.storeId.toString()))
             }
         }
 
@@ -131,7 +125,7 @@ class LeBonCoin(
                         append("Origin", "https://www.leboncoin.fr")
                         append("Content-Type", "application/json")
                     }
-                    body = ad
+                    setBody(ad)
                 }
 
         private suspend fun getPricing(categoryId: String): PricingResponse =
@@ -150,9 +144,9 @@ class LeBonCoin(
                     append("Referer", "https://www.leboncoin.fr/deposer-une-annonce/")
                     append("Origin", "https://www.leboncoin.fr")
                 }
-                body = MultiPartFormDataContent(formData {
+                setBody(MultiPartFormDataContent(formData {
                     appendFileInput("file", imageFile, "image/jpeg")
-                })
+                }))
             }
         }
 
@@ -162,7 +156,7 @@ class LeBonCoin(
         ): T = post("$rootUrl$path") {
             appendBearerToken(authInfo.accessToken)
             block()
-        }
+        }.body()
 
         private suspend inline fun <reified T> HttpClient.authGet(
             path: String,
@@ -170,7 +164,7 @@ class LeBonCoin(
         ): T = get("$rootUrl$path") {
             appendBearerToken(authInfo.accessToken)
             block()
-        }
+        }.body()
     }
 }
 

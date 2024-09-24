@@ -1,36 +1,27 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
-    kotlin("jvm") version "1.3.50"
-    kotlin("plugin.serialization") version "1.3.50"
+    kotlin("jvm") version "2.0.20"
+    kotlin("plugin.serialization") version "2.0.20"
     application
 }
 
 group = "org.hildan.leboncoin"
-version = "1.0-SNAPSHOT"
 
 application {
-    mainClassName = "org.hildan.leboncoin.MainKt"
+    mainClass.set("org.hildan.leboncoin.MainKt")
 }
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {
-    implementation(kotlin("stdlib-jdk8"))
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
-    val ktorVersion = "1.2.4"
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
+    val ktorVersion = "2.3.12"
     implementation("io.ktor:ktor-client-apache:$ktorVersion")
-    implementation("io.ktor:ktor-client-json:$ktorVersion")
-    implementation("io.ktor:ktor-client-jackson:$ktorVersion")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
+    implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.12.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3")
     implementation("com.charleskorn.kaml:kaml:0.61.0")
-}
-
-tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "1.8"
 }

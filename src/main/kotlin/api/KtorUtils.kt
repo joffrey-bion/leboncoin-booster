@@ -6,7 +6,7 @@ import io.ktor.client.request.headers
 import io.ktor.http.Headers
 import io.ktor.http.HeadersBuilder
 import io.ktor.http.HttpHeaders
-import kotlinx.io.streams.asInput
+import io.ktor.utils.io.streams.*
 import java.io.File
 
 fun FormBuilder.appendFileInput(key: String, file: File, contentType: String) {
