@@ -33,7 +33,7 @@ data class YamlAd(
     )
 }
 
-fun readYamlAds(path: Path): YamlAds = Yaml.default.parse(YamlAds.serializer(), path.toFile().readText())
+fun readYamlAds(path: Path): YamlAds = Yaml.default.decodeFromString(YamlAds.serializer(), path.toFile().readText())
 
 data class LbcAds(
     val email: String,
