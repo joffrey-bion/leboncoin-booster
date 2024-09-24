@@ -28,7 +28,7 @@ dependencies {
     implementation("io.ktor:ktor-client-jackson:$ktorVersion")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.12.0")
-    implementation("com.charleskorn.kaml:kaml:0.13.0")
+    implementation("com.charleskorn.kaml:kaml:0.61.0")
 }
 
 tasks.withType<KotlinCompile> {
