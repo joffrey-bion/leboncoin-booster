@@ -23,5 +23,5 @@ dependencies {
     implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3")
-    implementation("com.charleskorn.kaml:kaml:0.66.0")
+    implementation("com.charleskorn.kaml:kaml:0.67.0")
 }
