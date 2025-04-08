@@ -15,7 +15,7 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
     val ktorVersion = "3.1.2"
     implementation("io.ktor:ktor-client-apache:$ktorVersion")
