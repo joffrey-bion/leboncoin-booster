@@ -15,13 +15,12 @@ repositories {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
+    implementation(libs.kotlinx.coroutines.core)
 
-    val ktorVersion = "3.3.1"
-    implementation("io.ktor:ktor-client-apache:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-jackson:$ktorVersion")
+    implementation(libs.ktor.client.apache)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.jackson)
 
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.13.0")
-    implementation("com.charleskorn.kaml:kaml:0.104.0")
+    implementation(libs.kotlinx.serialization.core)
+    implementation(libs.kaml)
 }
